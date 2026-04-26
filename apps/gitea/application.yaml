@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitea
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://dl.gitea.com/charts/
+    chart: gitea
+    targetRevision: "*"
+    helm:
+      valuesObject:
+        persistence:
+          enabled: true
+          size: 20Gi
+          storageClass: longhorn-static
+
+        postgresql:
+          enabled: true
+          primary:
+            persistence:
+              enabled: true
+              size: 10Gi
+              storageClass: longhorn-static
+
+        redis-cluster:
+          enabled: false
+
+        redis:
+          enabled: true
+          master:
+            persistence:
+              enabled: true
+              size: 10Gi
+              storageClass: longhorn-static
+
+        service:
+          http:
+            type: ClusterIP
+          ssh:
+            type: NodePort
+            nodePort: 30222
+
+        ingress:
+          enabled: true
+          className: traefik
+          hosts:
+            - host: gitea.local
+              paths:
+                - path: /
+                  pathType: Prefix
+
+        gitea:
+          admin:
+            username: gitea_admin
+            password: ChangeMe123!
+            email: admin@example.local
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitea
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
