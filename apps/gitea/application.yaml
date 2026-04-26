@@ -14,30 +14,32 @@ spec:
       valuesObject:
         persistence:
           enabled: true
-          size: 10Gi
+          size: 20Gi
           storageClass: longhorn-static
 
         postgresql:
           enabled: true
+          image:
+            registry: docker.io
+            repository: bitnamilegacy/postgresql
+            tag: 17.6.0-debian-12-r4
           primary:
             persistence:
               enabled: true
-              size: 5Gi
+              size: 10Gi
               storageClass: longhorn-static
 
         postgresql-ha:
+          enabled: false
+
+        valkey-cluster:
           enabled: false
 
         redis-cluster:
           enabled: false
 
         redis:
-          enabled: true
-          master:
-            persistence:
-              enabled: true
-              size: 5Gi
-              storageClass: longhorn-static
+          enabled: false
 
         service:
           http:
