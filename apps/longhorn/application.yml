@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://charts.longhorn.io
     chart: longhorn
-    targetRevision: "*"
+    targetRevision: "1.8.1"
   destination:
     server: https://kubernetes.default.svc
     namespace: longhorn-system
@@ -18,3 +18,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - ServerSideApply=true
