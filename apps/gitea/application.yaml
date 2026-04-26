@@ -25,6 +25,9 @@ spec:
               size: 10Gi
               storageClass: longhorn-static
 
+        postgresql-ha:
+          enabled: false
+
         redis-cluster:
           enabled: false
 
@@ -33,7 +36,7 @@ spec:
           master:
             persistence:
               enabled: true
-              size: 10Gi
+              size: 5Gi
               storageClass: longhorn-static
 
         service:
@@ -54,9 +57,10 @@ spec:
 
         gitea:
           admin:
-            username: gitea_admin
-            password: ChangeMe123!
-            email: admin@example.local
+            existingSecret: gitea-admin-secret
+            usernameKey: username
+            passwordKey: password
+            emailKey: email
 
   destination:
     server: https://kubernetes.default.svc
