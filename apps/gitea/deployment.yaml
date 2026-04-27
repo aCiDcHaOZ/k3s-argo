@@ -5,6 +5,8 @@ metadata:
   namespace: gitea
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: gitea
@@ -25,7 +27,13 @@ spec:
             - name: USER_GID
               value: "1000"
             - name: GITEA__server__ROOT_URL
-              value: "http://gitea.local:3000"
+              value: "http://gitea.local:3000/"
+            - name: GITEA__server__DOMAIN
+              value: "gitea.local"
+            - name: GITEA__server__HTTP_PORT
+              value: "3000"
+            - name: GITEA__server__PROTOCOL
+              value: "http"
           volumeMounts:
             - name: data
               mountPath: /data
