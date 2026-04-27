@@ -13,6 +13,7 @@ data:
 
     container:
       docker_host: unix:///var/run/docker.sock
+      force_pull: false
 
 ---
 apiVersion: apps/v1
@@ -98,7 +99,8 @@ spec:
     - metadata:
         name: runner-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes:
+          - ReadWriteOnce
         resources:
           requests:
             storage: 5Gi
