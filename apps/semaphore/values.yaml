@@ -1,0 +1,40 @@
+namespace: semaphore
+
+replicaCount: 1
+
+image:
+  repository: semaphoreui/semaphore
+  tag: latest
+  pullPolicy: IfNotPresent
+
+semaphore:
+  publicUrl: https://semaphore.onlionel.com
+  dbDialect: bolt
+  admin:
+    username: admin
+    password: changeme
+    name: Admin
+    email: admin@onlionel.com
+  accessKeyEncryption: "+SqYix/AtUs/jPaQseLxGn4i7RHKUNJwe46AoLbTx90="
+
+persistence:
+  storageClass: longhorn-2rep
+  size: 5Gi
+  accessMode: ReadWriteOnce
+
+security:
+  enabled: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  fsGroup: 1001
+  fixPermissions: true
+
+service:
+  name: semaphore-web
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: traefik
+  host: semaphore.onlionel.com
