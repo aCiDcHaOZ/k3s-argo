@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gitea-act-runner
+  namespace: gitea
+spec:
+  serviceName: "gitea-act-runner"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gitea-act-runner
+  template:
+    metadata:
+      labels:
+        app: gitea-act-runner
+    spec:
+      containers:
+        - name: act-runner
+          image: gitea/act_runner:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: GITEA_INSTANCE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-runner-secret
+                  key: GITEA_INSTANCE_URL
+            - name: GITEA_RUNNER_REGISTRATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitea-runner-secret
+                  key: GITEA_RUNNER_REGISTRATION_TOKEN
+            - name: GITEA_RUNNER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: runner-data
+              mountPath: /data
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+            type: Socket
+  volumeClaimTemplates:
+    - metadata:
+        name: runner-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
