@@ -32,6 +32,8 @@ spec:
         - name: runner
           image: gitea/act_runner:latest
           imagePullPolicy: IfNotPresent
+          command:
+            - act_runner
           args:
             - daemon
             - --config
