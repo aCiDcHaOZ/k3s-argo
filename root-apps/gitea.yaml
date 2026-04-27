@@ -7,7 +7,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://git.onlionel.com/lionel/k3s_gitops.git
+    repoURL: https://github.com/aCiDcHaOZ/k3s-argo.git
     targetRevision: main
     path: apps/gitea
 
