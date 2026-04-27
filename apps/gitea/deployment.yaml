@@ -25,7 +25,7 @@ spec:
             - name: USER_GID
               value: "1000"
             - name: GITEA__server__ROOT_URL
-              value: "https://gitea.local"
+              value: "http://gitea.local:3000"
           volumeMounts:
             - name: data
               mountPath: /data
