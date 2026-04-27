@@ -17,6 +17,8 @@ spec:
       labels:
         app: semaphore
     spec:
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+
       {{- if .Values.security.enabled }}
       securityContext:
         fsGroup: {{ .Values.security.fsGroup }}
