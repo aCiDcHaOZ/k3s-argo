@@ -8,14 +8,9 @@ image:
   pullPolicy: IfNotPresent
 
 semaphore:
-  publicUrl: https://semaphore.onlionel.com
+  publicUrl: http://semaphore.local
   dbDialect: bolt
-  admin:
-    username: admin
-    password: changeme
-    name: Admin
-    email: admin@onlionel.com
-  accessKeyEncryption: "+SqYix/AtUs/jPaQseLxGn4i7RHKUNJwe46AoLbTx90="
+  admin: {}
 
 persistence:
   storageClass: longhorn-2rep
@@ -37,4 +32,4 @@ service:
 ingress:
   enabled: true
   className: traefik
-  host: semaphore.onlionel.com
+  host: semaphore.local
