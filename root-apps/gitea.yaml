@@ -21,13 +21,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-
-env:
-  - name: GITEA__server__ROOT_URL
-    value: "http://gitea.local:3000/
-  - name: GITEA__server__DOMAIN
-    value: "gitea.local"
-  - name: GITEA__server__HTTP_PORT
-    value: "3000"
-  - name: GITEA__server__PROTOCOL
-    value: "http"
+      
