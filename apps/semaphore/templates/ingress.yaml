@@ -5,9 +5,7 @@ metadata:
   name: semaphore
   namespace: {{ .Values.namespace }}
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.tls: "true"
-    traefik.ingress.kubernetes.io/router.tls.certresolver: le
+
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:
