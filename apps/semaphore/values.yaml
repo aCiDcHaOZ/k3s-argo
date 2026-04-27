@@ -5,6 +5,9 @@ replicaCount: 1
 strategy:
   type: Recreate
 
+serviceAccount:
+  name: semaphore
+
 image:
   repository: gitea.local:30080/superadmin/semaphore-plus
   tag: latest
