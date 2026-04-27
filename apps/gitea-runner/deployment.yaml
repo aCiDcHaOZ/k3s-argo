@@ -34,8 +34,8 @@ spec:
     spec:
       containers:
         - name: runner
-          image: gitea/act_runner:latest
-          imagePullPolicy: IfNotPresent
+          image: gitea.local:3000/superadmin/semaphore-plus:latest
+          imagePullPolicy: Always
           workingDir: /data
           command:
             - act_runner
