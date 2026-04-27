@@ -27,7 +27,7 @@ spec:
             - name: USER_GID
               value: "1000"
             - name: GITEA__server__ROOT_URL
-              value: "http://gitea.local:3000/"
+              value: "http://gitea.local:30080/"
             - name: GITEA__server__DOMAIN
               value: "gitea.local"
             - name: GITEA__server__HTTP_PORT
