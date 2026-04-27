@@ -6,7 +6,7 @@ strategy:
   type: Recreate
 
 image:
-  repository: gitea.local:3000/superadmin/semaphore-plus
+  repository: gitea.local:30080/superadmin/semaphore-plus
   tag: latest
   pullPolicy: Always
 
