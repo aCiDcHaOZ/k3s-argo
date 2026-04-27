@@ -4,7 +4,6 @@ kind: Ingress
 metadata:
   name: semaphore
   namespace: {{ .Values.namespace }}
-  annotations:
 
 spec:
   ingressClassName: {{ .Values.ingress.className }}
