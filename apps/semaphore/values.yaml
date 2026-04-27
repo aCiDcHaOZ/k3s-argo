@@ -13,7 +13,7 @@ semaphore:
   admin: {}
 
 persistence:
-  storageClass: longhorn-2rep
+  storageClass: longhorn-static
   size: 5Gi
   accessMode: ReadWriteOnce
 
