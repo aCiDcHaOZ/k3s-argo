@@ -44,6 +44,8 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
+          args:
+            - --insecure-registry=gitea.local:3000
           env:
             - name: DOCKER_TLS_CERTDIR
               value: ""
