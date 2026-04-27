@@ -6,6 +6,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
 spec:
+  strategy:
+    type: {{ .Values.strategy.type }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
