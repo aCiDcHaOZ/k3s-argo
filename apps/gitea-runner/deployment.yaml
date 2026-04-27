@@ -11,6 +11,9 @@ data:
         - "ubuntu-24.04:docker://gitea.local:3000/superadmin/runner-images/ubuntu:act-latest"
         - "ubuntu-22.04:docker://gitea.local:3000/superadmin/runner-images/ubuntu:act-latest"
 
+    container:
+      docker_host: unix:///var/run/docker.sock
+
 ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -54,21 +57,24 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: DOCKER_HOST
-              value: tcp://localhost:2375
           volumeMounts:
             - name: runner-data
               mountPath: /data
             - name: runner-config
               mountPath: /config
               readOnly: true
+            - name: docker-sock
+              mountPath: /var/run
 
         - name: docker-dind
           image: docker:27-dind
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
+          command:
+            - dockerd
           args:
+            - --host=unix:///var/run/docker.sock
             - --insecure-registry=gitea.local:3000
           env:
             - name: DOCKER_TLS_CERTDIR
@@ -76,9 +82,13 @@ spec:
           volumeMounts:
             - name: dind-storage
               mountPath: /var/lib/docker
+            - name: docker-sock
+              mountPath: /var/run
 
       volumes:
         - name: dind-storage
+          emptyDir: {}
+        - name: docker-sock
           emptyDir: {}
         - name: runner-config
           configMap:
