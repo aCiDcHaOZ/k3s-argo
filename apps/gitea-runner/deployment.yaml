@@ -6,10 +6,10 @@ metadata:
 data:
   config.yaml: |
     runner:
-      labels:
-        - "ubuntu-latest:docker://gitea.local:3000/superadmin/runner-images/ubuntu:act-latest"
-        - "ubuntu-24.04:docker://gitea.local:3000/superadmin/runner-images/ubuntu:act-latest"
-        - "ubuntu-22.04:docker://gitea.local:3000/superadmin/runner-images/ubuntu:act-latest"
+  labels:
+    - "ubuntu-latest:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+    - "ubuntu-24.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+    - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
 
     container:
       docker_host: unix:///var/run/docker.sock
