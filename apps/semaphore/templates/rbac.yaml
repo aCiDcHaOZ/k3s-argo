@@ -1,4 +1,73 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: semaphore
+  namespace: {{ .Values.namespace }}
+
 ---
+# 🔹 Role in semaphore namespace (jobs + configmaps + pods)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: semaphore-job-runner
+  namespace: {{ .Values.namespace }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch"]
+
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: semaphore-job-runner
+  namespace: {{ .Values.namespace }}
+subjects:
+  - kind: ServiceAccount
+    name: semaphore
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: semaphore-job-runner
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# 🔹 ArgoCD Application management (in argocd namespace)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: semaphore-argocd-application-manager
+  namespace: argocd
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch", "delete", "patch", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: semaphore-argocd-application-manager
+  namespace: argocd
+subjects:
+  - kind: ServiceAccount
+    name: semaphore
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: Role
+  name: semaphore-argocd-application-manager
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# 🔹 Cluster-wide cleanup (voor klant namespaces)
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
