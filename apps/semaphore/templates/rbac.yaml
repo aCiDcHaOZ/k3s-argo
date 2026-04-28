@@ -1,67 +1,33 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: semaphore
-  namespace: {{ .Values.namespace }}
-
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: semaphore-job-runner
-  namespace: {{ .Values.namespace }}
+  name: semaphore-orange-kuma-cleaner
 rules:
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["get", "list", "watch", "create", "delete", "patch"]
-
   - apiGroups: [""]
-    resources: ["pods", "pods/log"]
-    verbs: ["get", "list", "watch"]
+    resources:
+      - namespaces
+      - services
+      - persistentvolumeclaims
+      - pods
+    verbs: ["get", "list", "watch", "delete"]
 
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+    verbs: ["get", "list", "watch", "delete"]
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: semaphore-job-runner
-  namespace: {{ .Values.namespace }}
+  name: semaphore-orange-kuma-cleaner
 subjects:
   - kind: ServiceAccount
     name: semaphore
     namespace: {{ .Values.namespace }}
 roleRef:
-  kind: Role
-  name: semaphore-job-runner
-  apiGroup: rbac.authorization.k8s.io
-
-# 🔥 NIEUW: rechten op ArgoCD Applications
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: semaphore-argocd-application-manager
-  namespace: argocd
-rules:
-  - apiGroups: ["argoproj.io"]
-    resources: ["applications"]
-    verbs: ["get", "list", "watch", "delete", "patch", "update"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: semaphore-argocd-application-manager
-  namespace: argocd
-subjects:
-  - kind: ServiceAccount
-    name: semaphore
-    namespace: {{ .Values.namespace }}
-roleRef:
-  kind: Role
-  name: semaphore-argocd-application-manager
+  kind: ClusterRole
+  name: semaphore-orange-kuma-cleaner
   apiGroup: rbac.authorization.k8s.io
