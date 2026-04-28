@@ -75,3 +75,9 @@ Nu het kopieren van de uptime kuma image naar onze eigen gitea is gelukt, willen
 # Gitea updaten
 
 Blijkbaar heb ik een pre-historische versie van Gitea geinstalleerd: Ik draai nu op 1.21 (april 2024 trouwens). De API-call die ik nodig heb zit in versie 1.24 en de laatste gitea versie is 1.26.1. Ik voelde me moedig en wilde meteen migreren naar 1.26.1. Niet zo moedig dat ik dit zonder een snapshot wilde proberen. Snel de foto gemaakt en het versienummer gespecificeerd in het manifest. Na een refresh en een nieuwe pod kon ik niet meer inloggen. Misschien moet ik het wat subtieler doen en netjes het upgrade path volgen: 1.21 -> 1.22.6 -> 1.23.8 -> 1.24.7 en misschien daarna 1.24.7 -> 1.25.5 -> 1.26.1. Tijdens het maken van de snapshot viel het me op dat longhorn ook drie major versies achterloopt. Ik besluit dat te laten voor wat het is.
+
+---
+
+# CI pipeline: de eerste babystapjes
+
+Nu de playbook werkt die een Uptime Kuma (UK) image naar de repo kan uploaden, is het tijd voor de volgende stap: Een workflow maken de image te hernoemen naar Orange Kuma (OK). De keuze om dat niet direct te laten doen tijdens het pullen heeft alles te maken met modulariteit en om te zorgen dat de deployment stap zo kort mogelijk duurt omdat de image de CI fase al voorbij is.
