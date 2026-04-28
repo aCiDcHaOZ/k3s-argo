@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
         - name: runner
-          image: gitea/act-runner:latest
+          image: gitea/act_runner:latest
           imagePullPolicy: Always
           workingDir: /data
           command:
