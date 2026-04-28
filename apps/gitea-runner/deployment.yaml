@@ -6,10 +6,10 @@ metadata:
 data:
   config.yaml: |
     runner:
-  labels:
-    - "ubuntu-latest:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
-    - "ubuntu-24.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
-    - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+      labels:
+        - "ubuntu-latest:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+        - "ubuntu-24.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+        - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
 
     container:
       docker_host: unix:///var/run/docker.sock
@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
         - name: runner
-          image: gitea/act_runner:latest
+          image: gitea.gitea.svc.cluster.local:3000/superadmin/semaphore-plus:latest
           imagePullPolicy: Always
           workingDir: /data
           command:
@@ -76,7 +76,7 @@ spec:
             - dockerd
           args:
             - --host=unix:///var/run/docker.sock
-            - --insecure-registry=gitea.local:3000
+            - --insecure-registry=gitea.gitea.svc.cluster.local:3000
           env:
             - name: DOCKER_TLS_CERTDIR
               value: ""
