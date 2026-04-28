@@ -3,6 +3,7 @@ kind: ServiceAccount
 metadata:
   name: semaphore
   namespace: {{ .Values.namespace }}
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -13,9 +14,15 @@ rules:
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["get", "list", "watch", "create", "delete", "patch"]
+
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["get", "list", "watch"]
+
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
