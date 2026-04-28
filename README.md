@@ -78,6 +78,7 @@ Blijkbaar heb ik een pre-historische versie van Gitea geinstalleerd: Ik draai nu
 
 ---
 
-# CI pipeline: de eerste babystapjes
+# De eerste deployment
 
-Nu de playbook werkt die een Uptime Kuma (UK) image naar de repo kan uploaden, is het tijd voor de volgende stap: Een workflow maken de image te hernoemen naar Orange Kuma (OK). De keuze om dat niet direct te laten doen tijdens het pullen heeft alles te maken met modulariteit en om te zorgen dat de deployment stap zo kort mogelijk duurt omdat de image de CI fase al voorbij is.
+Nu we een werkende Orange Kuma (OK) image hebben, willen we nadenken over hoe we die precies willen gaan deployen. De image moet meerdere keren gedeployed kunnen worden, daarom is een unieke naam noodzakelijk. Ik kies ervoor om de fictieve klantnummer deel uit te laten maken van de deployment. Omdat ik nu nog geen willekeurige klantnummers heb, besluit ik een hard-coded nummer te gebruiken. Deployment wil ik laten doen door middel van een playbook die een manifest pusht naar de zelf-gehoste Gitea repository. ArgoCD neemt het vanaf daar over. Althans, dat is de theorie.
+
