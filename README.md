@@ -82,3 +82,12 @@ Blijkbaar heb ik een pre-historische versie van Gitea geinstalleerd: Ik draai nu
 
 Nu we een werkende Orange Kuma (OK) image hebben, willen we nadenken over hoe we die precies willen gaan deployen. De image moet meerdere keren gedeployed kunnen worden, daarom is een unieke naam noodzakelijk. Ik kies ervoor om de fictieve klantnummer deel uit te laten maken van de deployment. Omdat ik nu nog geen willekeurige klantnummers heb, besluit ik een hard-coded nummer te gebruiken. Deployment wil ik laten doen door middel van een playbook die een manifest pusht naar de zelf-gehoste Gitea repository. ArgoCD neemt het vanaf daar over. Na een succesvolle deploy moet de pod nog bereikbaar worden buiten de kubernetes cluster. Hier zijn twee methodes voor ingress of nodeport. Omdat voor elke nieuwe ingress het lokale hosts bestand gewijzigd moet worden van de computer waarop de pod bereikt moet worden, gaan we dat niet doen. Met nodeport forwarden we een port vanaf het publieke IP-adres van een k3s server naar de pod.
 
+De logische volgende stap was om een playbook te maken die een klantnummer kan meegeven aan de deployment. Ik heb gekozen voor een opmaak als KN-XXX waar XXX drie getallen zijn. Het klantnummer wordt, bij gebrek aan beter ook gebruikt als portnummer met de som (KN / 100) + 31000. Zo krijgt de pod met klantnummer 123 port 31023 toegewezen. Er is een redelijke kans op collisions en het klantnummer mag niet hoger zijn dan 2767 omdat er geen portnummers hoger zijn dan 32767. Door gebruik te maken van klantnummer is het eenvoudig om hetzelfde nummer te gebruiken als namespace.
+Met een werkende deploy playbook op klantnummer is een playbook die de boel opruimt snel gemaakt. Het verwijderen van een deployment was wel een delicaat werkje omdat ArgoCD zo aggressief redeployments doet.
+
+---
+
+# orange-kuma-manager
+
+Omdat ik semaphore maar een saaie manier van deployen vind en lang niet alle informatie weergeeft wat de 'afdeling verkoop' zou willen zien, leek het me een goed idee om de opdracht nog moeilijker te maken. Dit doe ik door een website te maken waar alle deployments te managen zijn. De website start een playbook met de Ansible API zodat de basis nog steeds gedaan wordt door middel van playbooks.
+
