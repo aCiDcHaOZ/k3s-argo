@@ -17,12 +17,11 @@ data:
 
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: gitea-act-runner
   namespace: gitea
 spec:
-  serviceName: gitea-act-runner
   replicas: 5
   selector:
     matchLabels:
@@ -114,16 +113,8 @@ spec:
           emptyDir: {}
         - name: docker-run
           emptyDir: {}
+        - name: runner-data
+          emptyDir: {}
         - name: runner-config
           configMap:
             name: gitea-act-runner-config
-
-  volumeClaimTemplates:
-    - metadata:
-        name: runner-data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 5Gi
