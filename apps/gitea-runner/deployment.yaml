@@ -12,7 +12,7 @@ data:
         - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
 
     container:
-      docker_host: unix:///var/run/docker.sock
+      docker_host: tcp://127.0.0.1:2375
       force_pull: false
 
 ---
@@ -53,7 +53,7 @@ spec:
               mountPath: /var/run
 
         - name: runner
-          image: gitea/act_runner:0.5.0
+          image: gitea/act_runner:0.5.0-dind-rootless
           imagePullPolicy: IfNotPresent
           workingDir: /data
           command: ["sh", "-c"]
@@ -64,7 +64,7 @@ spec:
               export DOCKER_HOST="tcp://127.0.0.1:2375"
 
               echo "Waiting for Docker daemon..."
-              until docker info; do
+              until docker info >/dev/null 2>&1; do
                 echo "Docker daemon not ready yet; retrying..."
                 sleep 2
               done
