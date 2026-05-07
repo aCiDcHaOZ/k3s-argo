@@ -40,10 +40,24 @@ spec:
           command: ["sh", "-c"]
           args:
             - |
+              set -eu
+
               echo "Waiting for Docker daemon..."
               until docker info >/dev/null 2>&1; do
                 sleep 2
               done
+
+              if [ ! -f /data/.runner ]; then
+                echo "Registering Gitea act runner..."
+
+                act_runner register \
+                  --no-interactive \
+                  --instance "$GITEA_INSTANCE_URL" \
+                  --token "$GITEA_RUNNER_REGISTRATION_TOKEN" \
+                  --name "$GITEA_RUNNER_NAME"
+              else
+                echo "Runner already registered."
+              fi
 
               echo "Starting Gitea act runner..."
               exec act_runner daemon --config /config/config.yaml
