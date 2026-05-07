@@ -23,7 +23,7 @@ metadata:
   namespace: gitea
 spec:
   serviceName: gitea-act-runner
-  replicas: 7
+  replicas: 5
   selector:
     matchLabels:
       app: gitea-act-runner
@@ -33,6 +33,25 @@ spec:
         app: gitea-act-runner
     spec:
       containers:
+        - name: docker-dind
+          image: docker:27-dind
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          command: ["dockerd"]
+          args:
+            - --host=unix:///var/run/docker.sock
+            - --host=tcp://127.0.0.1:2375
+            - --insecure-registry=gitea.gitea.svc.cluster.local:3000
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: ""
+          volumeMounts:
+            - name: dind-storage
+              mountPath: /var/lib/docker
+            - name: docker-run
+              mountPath: /var/run
+
         - name: runner
           image: gitea/act_runner:0.5.0
           imagePullPolicy: IfNotPresent
@@ -42,8 +61,11 @@ spec:
             - |
               set -eu
 
+              export DOCKER_HOST="tcp://127.0.0.1:2375"
+
               echo "Waiting for Docker daemon..."
-              until docker info >/dev/null 2>&1; do
+              until docker info; do
+                echo "Docker daemon not ready yet; retrying..."
                 sleep 2
               done
 
@@ -77,38 +99,20 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
             - name: DOCKER_HOST
-              value: unix:///var/run/docker.sock
+              value: tcp://127.0.0.1:2375
           volumeMounts:
             - name: runner-data
               mountPath: /data
             - name: runner-config
               mountPath: /config
               readOnly: true
-            - name: docker-sock
-              mountPath: /var/run
-
-        - name: docker-dind
-          image: docker:27-dind
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            privileged: true
-          command: ["dockerd"]
-          args:
-            - --host=unix:///var/run/docker.sock
-            - --insecure-registry=gitea.gitea.svc.cluster.local:3000
-          env:
-            - name: DOCKER_TLS_CERTDIR
-              value: ""
-          volumeMounts:
-            - name: dind-storage
-              mountPath: /var/lib/docker
-            - name: docker-sock
+            - name: docker-run
               mountPath: /var/run
 
       volumes:
         - name: dind-storage
           emptyDir: {}
-        - name: docker-sock
+        - name: docker-run
           emptyDir: {}
         - name: runner-config
           configMap:
