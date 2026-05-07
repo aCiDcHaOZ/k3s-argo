@@ -23,7 +23,7 @@ metadata:
   namespace: gitea
 spec:
   serviceName: gitea-act-runner
-  replicas: 5
+  replicas: 7
   selector:
     matchLabels:
       app: gitea-act-runner
