@@ -12,7 +12,7 @@ data:
         - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
 
     container:
-      docker_host: tcp://127.0.0.1:2375
+      docker_host: tcp://172.17.0.1:2375
       force_pull: false
 
 ---
@@ -40,7 +40,7 @@ spec:
           command: ["dockerd"]
           args:
             - --host=unix:///var/run/docker.sock
-            - --host=tcp://127.0.0.1:2375
+            - --host=tcp://0.0.0.0:2375
             - --insecure-registry=gitea.gitea.svc.cluster.local:3000
           env:
             - name: DOCKER_TLS_CERTDIR
