@@ -10,8 +10,11 @@ data:
         - "ubuntu-latest:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
         - "ubuntu-24.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
         - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+
     container:
+      docker_host: tcp://127.0.0.1:2375
       force_pull: false
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -47,6 +50,10 @@ spec:
               mountPath: /var/lib/docker
             - name: docker-run
               mountPath: /var/run
+            - name: gitea-registry-ca
+              mountPath: /etc/docker/certs.d/gitea.local
+              readOnly: true
+
         - name: runner
           image: gitea/act_runner:0.5.0-dind-rootless
           imagePullPolicy: IfNotPresent
@@ -55,14 +62,18 @@ spec:
           args:
             - |
               set -eu
+
               export DOCKER_HOST="tcp://127.0.0.1:2375"
+
               echo "Waiting for Docker daemon..."
               until docker info >/dev/null 2>&1; do
                 echo "Docker daemon not ready yet; retrying..."
                 sleep 2
               done
+
               if [ ! -f /data/.runner ]; then
                 echo "Registering Gitea act runner..."
+
                 act_runner register \
                   --no-interactive \
                   --instance "$GITEA_INSTANCE_URL" \
@@ -71,6 +82,7 @@ spec:
               else
                 echo "Runner already registered."
               fi
+
               echo "Starting Gitea act runner..."
               exec act_runner daemon --config /config/config.yaml
           env:
@@ -98,6 +110,7 @@ spec:
               readOnly: true
             - name: docker-run
               mountPath: /var/run
+
       volumes:
         - name: dind-storage
           emptyDir: {}
@@ -108,3 +121,6 @@ spec:
         - name: runner-config
           configMap:
             name: gitea-act-runner-config
+        - name: gitea-registry-ca
+          configMap:
+            name: gitea-registry-ca
