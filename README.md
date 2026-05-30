@@ -1,93 +1,652 @@
-# Inleiding
-In deze markdown file vertellen we over de totstandkoming van het project "orange-kuma" ....
+# Orange Kuma Platform
+
+## Overzicht
+
+Orange Kuma Platform is een volledig GitOps-gestuurd deploymentplatform voor multi-tenant Uptime Kuma omgevingen op Kubernetes.
+
+Het project bestaat uit meerdere componenten die samenwerken:
+
+* Orange Kuma Manager (Flask webapplicatie)
+* Gitea container registry
+* Semaphore CI/CD orchestration
+* Ansible automation playbooks
+* ArgoCD GitOps deployment management
+* Kubernetes workloads
+* Longhorn persistent storage
+* Grafana monitoring
+
+Het doel van het platform is het automatisch uitrollen, beheren, monitoren en verwijderen van klant-specifieke Uptime Kuma instanties.
+
+Elke klant krijgt:
+
+* een eigen Kubernetes namespace
+* een eigen deployment
+* een eigen persistent storage volume
+* een eigen NodePort service
+* een eigen ArgoCD Application
+* een eigen GitOps manifeststructuur
 
 ---
 
-# Voorbereiding
-Voor de infrastructuur werden we verplicht om een Kubernetes cluster op te zetten.  
-Als (virtuele) hardwarekeuze om de boel te hosten, viel de keuze op de Proxmox omgeving die ter beschikking is gesteld door de Hanze Hogeschool.
+# Architectuur
+
+## Componentoverzicht
+
+```text
+Orange Kuma Manager
+        |
+        v
+Semaphore API
+        |
+        v
+Ansible Playbooks
+        |
+        +-------------------+
+        |                   |
+        v                   v
+Gitea Repo            Kubernetes Cluster
+(kuma-deployments)         |
+        |                  |
+        v                  v
+      ArgoCD ----------> Deployments
+```
 
 ---
 
-# Gitea actions: Uptime kuma klonen
-Het klonen van de playbook duurde erg lang omdat met elke action de image van `ubuntu:latest` gepulled moet worden van docker.io.  
+# Hoofdcomponenten
 
-Om dit sneller te laten verlopen hebben we een `ubuntu:latest` image in onze eigen repo gezet. Dit is gedaan met een tijdelijke Skopeo pod. Deze pod had de taak om de image van docker.io te pushen naar onze eigen repository.
+## 1. Orange Kuma Manager
 
----
+### Technologie
 
-# Hostname resolving
-Dit was een hoofdpijn dossier omdat containers van andere namespaces niet het IP van `gitea.local` konden resolven.  
+* Python Flask
+* Bootstrap frontend
+* REST API integraties
+* Server-side rendering
 
-Dit is uiteindelijk gemaakt door een override te maken in de CoreDNS configuratie van k3s.
+### Functie
 
-Daarna kwam het probleem dat Gitea buiten het cluster HTTPS gebruikte en binnen het netwerk HTTP. Dit komt omdat er gewerkt wordt met een split horizon DNS:
+De manager is de centrale webinterface voor:
 
-- Buiten het netwerk verwijst `gitea.local` naar `10.24.43.100` ← adres van de k3s server  
-- Binnen het netwerk verwijst `gitea.local` naar `10.43.109.173` ← Intern adres van k3s  
+* deployments aanmaken
+* deployments verwijderen
+* image versies selecteren
+* deployment status bekijken
+* monitoring openen
+* interactie met Semaphore
 
-De ingress van Traefik zet http om naar https. Omdat ik in ieder geval binnen k3s native http wilde gebruiken om certificaatfouten tegen te gaan, wilde de gitea runners weer niet werken met http tenzij ze daarvoor expliciet geconfigureerd werden.  
+### Belangrijkste functionaliteiten
 
-Na lang troubleshooten kwam ik er achter wat er mis ging:
+#### Nieuwe deployment aanmaken
 
-De gita-runner applicatie en gitea konden niet met elkaar communiceren doordat de runner eigenlijk Docker-in-docker (dind) is. Door de extra abstractielaag verwees localhost naar een intern IP-adres dat door Docker network is uitgegeven en niet het IP-adres wat de pod heeft.
+Gebruiker voert in:
 
-**Foutmelding: Cannot connect to the Docker daemon at tcp://localhost:2375**
+* klantnummer
+* gewenste image versie
 
----
+De manager:
 
-# 'Eenvoudige' Kloon maken van Uptime kuma
-In eerste instantie wilde ik hier een Gitea workflow voor maken, Echter zijn we verplicht met Semaphore te werken. Semaphore is hier ook een wat elegantere oplossing voor in plaats van hacky een workflow laten runnen.
+1. haalt beschikbare tags op uit Gitea Registry
+2. toont deze in een dropdown
+3. start een Semaphore task
+4. Semaphore voert Ansible playbook uit
+5. Playbook schrijft manifests naar Git
+6. ArgoCD deployed automatisch
 
----
+#### Deployment verwijderen
 
-# Werken met Semaphore en Skopeo
-Semaphore is out-of-the-box niet ingericht om docker images te kopieren of te plakken van verschillende repositories.  
+De manager:
 
-Hier is een andere tool voor: Skopeo (niet te verwarren met scapino).
+1. start Semaphore remove playbook
+2. verwijdert GitOps manifests
+3. wacht tot manifests verdwenen zijn
+4. verwijdert ArgoCD Application
+5. verwijdert namespace volledig
+6. Kubernetes verwijdert alle resources
 
-Om skopeo te draaien is daar een nieuwe job-runner manifest voor aangemaakt in Github die opgehaald wordt door ArgoCD.  
+#### Monitoring
 
-Het idee is dat Semaphore opdracht geeft aan skopeo om uptime kuma te pullen van docker.io en daarna te pushen naar onze eigen Gitea repo.
+Navbar link:
 
----
-
-# Custom image voor Semaphore
-Hiervoor is de kubernetes python library nodig die natuurlijk niet standaard in Semaphore zit.  
-
-Om dat probleem te verhelpen moest er een custom image gebouwd worden. Dit gebeurt in de repo semaphore-plus:
-
-- De semaphore image wordt gepulled  
-- Met pip wordt de kubernetes module toegevoegd
-- Het manifest van Semaphore wordt aangepast: Pull nu onze eigen image
-- ArgoCD regelt de redeployment van Semaphore
-
-Ook hier liep ik tegen DNS problemen aan. De vorige keer hebben we de DNS problemen verholpen die binnen een pod kunnen voorkomen en die op de windows pc voorkomen. Na een DNS override op de k3s servers zelf was de service nog steeds niet benaderbaar vanaf de k3s server. Het volgende plan was om een nieuwe service te maken die port 30080 vanaf het IP-adres van de k3s servers doorstuurt naar gitea.local:3000. Een laatste aanpassing aan het manifest van gitea; de ROOT_URL moest aangepast worden naar http://gitea.local:30080 en voila! Semaphore draait onze zelfgemaakte image. een uur minder maar een deployment rijker.
-
----
-
-# Uptime kuma klonen naar eigen repo
-
-Nu het kopieren van de uptime kuma image naar onze eigen gitea is gelukt, willen de hem graag koppelen aan een repo. Daar is een API call voor die ik in eerste instantie wilde aanspreken met curl maar curl is niet geinstalleerd op de skopeo image. Een uitwijking naar wget hielp ook niet. Ik ging het dichter bij de bron zoeken door een wget uit te voeren binnen de pod. Daar bleek dat gitea.local weer niet geresolved werd. Dit is inmiddels de derde keer dat ik me aan deze steen stoot. In het vervolg moet ik maar de defult entry gitea.gitea.svc.cluster.local gebruiken binnen het cluster. Nadat de problemen met resolve geresolved waren liep ik tegen een nieuwe 'uitdaging'. De API-call die ik nodig heb om de package te koppelen aan een repo, komt niet voor in deze gitea versie.
+```text
+http://grafana.local/login
+```
 
 ---
 
-# Gitea updaten
+# 2. Gitea
 
-Blijkbaar heb ik een pre-historische versie van Gitea geinstalleerd: Ik draai nu op 1.21 (april 2024 trouwens). De API-call die ik nodig heb zit in versie 1.24 en de laatste gitea versie is 1.26.1. Ik voelde me moedig en wilde meteen migreren naar 1.26.1. Niet zo moedig dat ik dit zonder een snapshot wilde proberen. Snel de foto gemaakt en het versienummer gespecificeerd in het manifest. Na een refresh en een nieuwe pod kon ik niet meer inloggen. Misschien moet ik het wat subtieler doen en netjes het upgrade path volgen: 1.21 -> 1.22.6 -> 1.23.8 -> 1.24.7 en misschien daarna 1.24.7 -> 1.25.5 -> 1.26.1. Tijdens het maken van de snapshot viel het me op dat longhorn ook drie major versies achterloopt. Ik besluit dat te laten voor wat het is.
+## Doel
+
+Gitea wordt gebruikt voor:
+
+* GitOps manifests
+* container registry
+* versiebeheer
+* deployment source-of-truth
+
+## Repository structuur
+
+### kuma-deployments
+
+```text
+customers/
+  KN-652/
+    orange-kuma/
+      namespace.yaml
+      deployment.yaml
+      pvc.yaml
+      service.yaml
+      kustomization.yaml
+
+argocd/
+  orange-kuma-kn-652-application.yaml
+```
 
 ---
 
-# De eerste deployment
+# 3. Semaphore
 
-Nu we een werkende Orange Kuma (OK) image hebben, willen we nadenken over hoe we die precies willen gaan deployen. De image moet meerdere keren gedeployed kunnen worden, daarom is een unieke naam noodzakelijk. Ik kies ervoor om de fictieve klantnummer deel uit te laten maken van de deployment. Omdat ik nu nog geen willekeurige klantnummers heb, besluit ik een hard-coded nummer te gebruiken. Deployment wil ik laten doen door middel van een playbook die een manifest pusht naar de zelf-gehoste Gitea repository. ArgoCD neemt het vanaf daar over. Na een succesvolle deploy moet de pod nog bereikbaar worden buiten de kubernetes cluster. Hier zijn twee methodes voor ingress of nodeport. Omdat voor elke nieuwe ingress het lokale hosts bestand gewijzigd moet worden van de computer waarop de pod bereikt moet worden, gaan we dat niet doen. Met nodeport forwarden we een port vanaf het publieke IP-adres van een k3s server naar de pod.
+## Functie
 
-De logische volgende stap was om een playbook te maken die een klantnummer kan meegeven aan de deployment. Ik heb gekozen voor een opmaak als KN-XXX waar XXX drie getallen zijn. Het klantnummer wordt, bij gebrek aan beter ook gebruikt als portnummer met de som (KN / 100) + 31000. Zo krijgt de pod met klantnummer 123 port 31023 toegewezen. Er is een redelijke kans op collisions en het klantnummer mag niet hoger zijn dan 2767 omdat er geen portnummers hoger zijn dan 32767. Door gebruik te maken van klantnummer is het eenvoudig om hetzelfde nummer te gebruiken als namespace.
-Met een werkende deploy playbook op klantnummer is een playbook die de boel opruimt snel gemaakt. Het verwijderen van een deployment was wel een delicaat werkje omdat ArgoCD zo aggressief redeployments doet.
+Semaphore wordt gebruikt als automation orchestrator.
+
+### Taken
+
+* deployment playbooks uitvoeren
+* remove playbooks uitvoeren
+* variabelen injecteren
+* logging tonen
+* taakstatus beheren
+
+### Voorbeelden
+
+#### Deployment task
+
+```text
+Deploy OK, geef klantnummer mee
+```
+
+#### Remove task
+
+```text
+Remove Orange Kuma Deployment
+```
 
 ---
 
-# orange-kuma-manager
+# 4. Ansible
 
-Omdat ik semaphore maar een saaie manier van deployen vind en lang niet alle informatie weergeeft wat de 'afdeling verkoop' zou willen zien, leek het me een goed idee om de opdracht nog moeilijker te maken. Dit doe ik door een website te maken waar alle deployments te managen zijn. De website start een playbook met de Ansible API zodat de basis nog steeds gedaan wordt door middel van playbooks.
+## Doel
 
+Ansible verzorgt:
+
+* genereren van manifests
+* GitOps repository updates
+* Kubernetes cleanup
+* ArgoCD management
+* deployment orchestration
+
+---
+
+# Deployment Flow
+
+## Stap 1 - Input validatie
+
+Validatie van:
+
+* customer_number
+* image_tag
+
+Voorbeeld:
+
+```yaml
+customer_number_input: "KN-652"
+image_tag_input: "1.23.16"
+```
+
+---
+
+## Stap 2 - Manifest generatie
+
+De playbook genereert:
+
+* namespace
+* pvc
+* deployment
+* service
+* kustomization
+* ArgoCD application
+
+---
+
+## Stap 3 - ConfigMap generatie
+
+Alle bestanden worden in een Kubernetes ConfigMap geplaatst.
+
+---
+
+## Stap 4 - Upload Job
+
+Een tijdelijke Kubernetes Job:
+
+* mount de manifests
+* runt Python upload script
+* schrijft bestanden naar Gitea API
+
+---
+
+## Stap 5 - GitOps Sync
+
+ArgoCD detecteert:
+
+* nieuwe manifests
+* nieuwe Application
+* nieuwe namespace
+
+Daarna start automatische deployment.
+
+---
+
+# Remove Flow
+
+## Belangrijk
+
+De remove flow is expliciet GitOps-safe gemaakt.
+
+Een eerdere implementatie verwijderde eerst de live ArgoCD Application.
+Daardoor kon ArgoCD de application opnieuw aanmaken zolang de Git manifests nog bestonden.
+
+Dit is opgelost.
+
+## Correcte remove volgorde
+
+### 1. Git manifests verwijderen
+
+Bestanden worden verwijderd uit:
+
+```text
+customers/KN-xxx/orange-kuma/
+argocd/orange-kuma-kn-xxx-application.yaml
+```
+
+### 2. Controleren dat Git cleanup voltooid is
+
+Playbook wacht totdat Gitea bevestigt dat bestanden verdwenen zijn.
+
+### 3. ArgoCD Application verwijderen
+
+Pas nadat Git source verdwenen is.
+
+### 4. Namespace verwijderen
+
+Volledige namespace cleanup:
+
+* deployments
+* services
+* PVCs
+* configmaps
+* secrets
+* pods
+
+Alles verdwijnt automatisch.
+
+---
+
+# Kubernetes Architectuur
+
+## Namespace per klant
+
+Voorbeeld:
+
+```text
+orange-kuma-kn-652
+```
+
+## Deployment naam
+
+```text
+orange-kuma-kn-652
+```
+
+## Persistent storage
+
+Longhorn wordt gebruikt.
+
+PVC:
+
+```yaml
+storageClassName: longhorn
+```
+
+## Service Type
+
+```yaml
+type: NodePort
+```
+
+## NodePort generatie
+
+NodePort wordt automatisch berekend:
+
+```yaml
+31000 + laatste 2 digits klantnummer
+```
+
+Voorbeeld:
+
+```text
+KN-652 -> 31052
+```
+
+---
+
+# Image Management
+
+## Image Source
+
+Beschikbare versies worden opgehaald uit:
+
+```text
+gitea.local:30080/superadmin/orange-kuma
+```
+
+## Waarom alleen registry tags?
+
+De manager toont alleen images die:
+
+* reeds geconverteerd
+* reeds getest
+* reeds beschikbaar
+* reeds gepusht
+
+zijn.
+
+Daardoor worden deployment failures door ontbrekende images voorkomen.
+
+---
+
+# Monitoring
+
+## Grafana
+
+Monitoring link:
+
+```text
+http://grafana.local/login
+```
+
+## Aanbevolen dashboards
+
+### Kubernetes Namespace Dashboard
+
+Toont:
+
+* CPU
+* memory
+* pod status
+* restart count
+* network traffic
+
+### PVC Dashboard
+
+Toont:
+
+* storage usage
+* Longhorn status
+* volume health
+
+### ArgoCD Dashboard
+
+Toont:
+
+* sync status
+* out-of-sync apps
+* deployment health
+
+---
+
+# Veiligheid
+
+## Input validatie
+
+Regex validatie voorkomt:
+
+* command injection
+* invalid image tags
+* invalid customer nummers
+
+Voorbeeld:
+
+```yaml
+- customer_number_input is match("^KN-[0-9]+$")
+- image_tag_input is match("^[A-Za-z0-9_.-]+$")
+```
+
+---
+
+# Belangrijke Problemen Die Zijn Opgelost
+
+## 1. Recursive Ansible Variable Loop
+
+### Probleem
+
+```yaml
+image_tag: "{{ image_tag | default('1.23.16') }}"
+```
+
+Dit veroorzaakte:
+
+```text
+recursive loop detected in template string
+```
+
+### Oplossing
+
+Nieuwe variabelen:
+
+```yaml
+image_tag_input
+customer_number_input
+```
+
+---
+
+## 2. ArgoCD Recreation Loop
+
+### Probleem
+
+Deployment werd opnieuw aangemaakt na delete.
+
+### Oorzaak
+
+ArgoCD Application werd verwijderd voordat Git manifests verwijderd waren.
+
+### Oplossing
+
+Nieuwe volgorde:
+
+1. Git cleanup
+2. bevestiging
+3. ArgoCD delete
+4. namespace delete
+
+---
+
+## 3. Namespace Cleanup
+
+### Probleem
+
+Namespaces bleven bestaan.
+
+### Oplossing
+
+Volledige namespace delete toegevoegd:
+
+```yaml
+kind: Namespace
+state: absent
+```
+
+---
+
+# Omgevingsvariabelen
+
+## Orange Kuma Manager
+
+### Semaphore
+
+```text
+SEMAPHORE_URL
+SEMAPHORE_API_TOKEN
+SEMAPHORE_TEMPLATE_ID
+SEMAPHORE_DELETE_TEMPLATE_ID
+```
+
+### Gitea
+
+```text
+GITEA_URL
+GITEA_API_TOKEN
+GITEA_USERNAME
+GITEA_REPO
+```
+
+---
+
+# Kubernetes Vereisten
+
+## Benodigd
+
+* Kubernetes cluster
+* ArgoCD
+* Longhorn
+* Gitea
+* Semaphore
+* Grafana
+
+---
+
+# Deployment Voorbeeld
+
+## Nieuwe klant
+
+Input:
+
+```text
+Customer: KN-652
+Version: 1.23.16
+```
+
+Resultaat:
+
+```text
+Namespace:
+orange-kuma-kn-652
+
+Service:
+NodePort 31052
+
+Image:
+gitea.local:30080/superadmin/orange-kuma:1.23.16
+```
+
+---
+
+# Troubleshooting
+
+## Namespace blijft hangen
+
+Controleer:
+
+```bash
+kubectl get namespace orange-kuma-kn-652 -o json | jq '.spec.finalizers'
+```
+
+Force remove:
+
+```bash
+kubectl patch namespace orange-kuma-kn-652 \
+  -p '{"spec":{"finalizers":[]}}' \
+  --type=merge
+```
+
+---
+
+## ArgoCD app komt terug
+
+Controleer:
+
+* Git manifest nog aanwezig?
+* app-of-apps configuratie?
+* sync delay?
+
+---
+
+## Deployment verschijnt niet
+
+Controleer:
+
+```bash
+kubectl get applications -n argocd
+```
+
+en:
+
+```bash
+kubectl logs -n semaphore deployment/semaphore
+```
+
+---
+
+# Toekomstige Verbeteringen
+
+## Mogelijke uitbreidingen
+
+### Authenticatie
+
+* Keycloak
+* OAuth2
+* SSO
+
+### Multi-cluster support
+
+* meerdere Kubernetes clusters
+* regio deployments
+* HA management
+
+### Autoscaling
+
+* HPA
+* cluster autoscaler
+
+### SSL/TLS
+
+* cert-manager
+* Let's Encrypt
+* wildcard ingress
+
+### Backup Management
+
+* PVC snapshots
+* Longhorn backups
+* restore workflows
+
+---
+
+# Samenvatting
+
+Orange Kuma Platform is een volledig geautomatiseerd GitOps deploymentplatform voor multi-tenant Uptime Kuma workloads op Kubernetes.
+
+De architectuur combineert:
+
+* Flask
+* Semaphore
+* Ansible
+* Gitea
+* ArgoCD
+* Kubernetes
+* Longhorn
+* Grafana
+
+tot één beheersysteem waarmee deployments veilig uitgerold, beheerd, gemonitord en verwijderd kunnen worden.
