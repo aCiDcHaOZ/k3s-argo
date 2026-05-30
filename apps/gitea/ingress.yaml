@@ -6,6 +6,11 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: traefik
 spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - gitea.local
+      secretName: gitea-tls
   rules:
     - host: gitea.local
       http:
