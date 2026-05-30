@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gitea-act-runner-config
+  namespace: gitea
+
+data:
+  config.yaml: |
+    runner:
+      labels:
+        - "ubuntu-latest:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+        - "ubuntu-24.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+        - "ubuntu-22.04:docker://gitea.gitea.svc.cluster.local:3000/superadmin/runner-images/ubuntu:act-latest"
+
+    container:
+      network: host
+      privileged: true
+      options: >-
+        -v /var/run/docker.sock:/var/run/docker.sock
+
+      valid_volumes:
+        - /var/run/docker.sock
+
+      force_pull: false
